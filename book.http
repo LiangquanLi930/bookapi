@@ -1,0 +1,26 @@
+### 获取所有 books
+GET http://localhost:8080/books
+Content-Type: application/json
+
+### 创建新的 book
+POST http://localhost:8080/books
+Content-Type: application/json
+
+{
+  "name": "Thinking in Java"
+}
+
+### 获取特定 item
+GET http://localhost:8080/items/{replace_with_item_id}
+Content-Type: application/json
+
+# 更新特定 item
+PUT http://localhost:8080/items/{replace_with_item_id}
+Content-Type: application/json
+
+{
+  "name": "Updated Item"
+}
+
+# 删除特定 item
+DELETE http://localhost:8080/items/{replace_with_item_id}
