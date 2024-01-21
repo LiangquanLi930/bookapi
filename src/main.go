@@ -2,10 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	_ "os"
+	"os/signal"
 	_ "path/filepath"
+	"syscall"
 
 	"github.com/emicklei/go-restful"
 	"github.com/google/uuid"
@@ -24,38 +28,61 @@ func main() {
 
 	// 创建一个新的 WebService
 	ws := new(restful.WebService)
-	ws.Path("/books").
+	ws.Path("/").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
 	// 注册 API 路由
-	ws.Route(ws.GET("/").To(getBooks).
+	ws.Route(ws.GET("/books").To(getBooks).
 		Doc("获取所有 books").
 		Writes([]Book{}))
 
-	ws.Route(ws.GET("/{book-id}").To(getBook).
+	ws.Route(ws.GET("/books/{book-id}").To(getBook).
 		Doc("通过 ID 获取 book").
 		Param(ws.PathParameter("book-id", "book 的 ID").DataType("string")).
 		Writes(Book{}))
 
-	ws.Route(ws.POST("/").To(createBook).
+	ws.Route(ws.POST("/books/").To(createBook).
 		Doc("创建新的 book").
 		Reads(Book{}))
 
-	ws.Route(ws.PUT("/{book-id}").To(updateBook).
+	ws.Route(ws.PUT("/books/{book-id}").To(updateBook).
 		Doc("更新指定 ID 的 book").
 		Param(ws.PathParameter("book-id", "book 的 ID").DataType("string")).
 		Reads(Book{}))
 
-	ws.Route(ws.DELETE("/{book-id}").To(deleteBook).
+	ws.Route(ws.DELETE("/books/{book-id}").To(deleteBook).
 		Doc("删除指定 ID 的 book").
 		Param(ws.PathParameter("book-id", "book 的 ID").DataType("string")))
+
+	ws.Route(ws.GET("/exit").To(exitHandler).
+		Doc("退出程序"))
 
 	// 将 WebService 注册到 Container
 	restful.Add(ws)
 
 	// 启动 HTTP 服务器
-	http.ListenAndServe(":8080", nil)
+	go func() {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			fmt.Println("HTTP server error:", err)
+		}
+	}()
+
+	// 等待退出信号
+	waitForExitSignal()
+}
+
+func exitHandler(request *restful.Request, response *restful.Response) {
+	fmt.Println("Received exit request. Exiting...")
+	os.Exit(0)
+}
+
+func waitForExitSignal() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-c
+	fmt.Printf("Received signal: %v. Exiting...\n", sig)
+	os.Exit(0)
 }
 
 func getBooks(request *restful.Request, response *restful.Response) {
